@@ -1,0 +1,87 @@
+// Jenkins declarative pipeline for deploying the ELK stack via Ansible.
+//
+// Requirements on the Jenkins controller/agent:
+//   - Ansible installed and on PATH (`ansible`, `ansible-playbook`)
+//   - An SSH private-key credential (id: 'elk-ssh-key') for reaching target hosts
+//   - An Ansible Vault password credential (id: 'ansible-vault-pass') as secret text
+//
+// Nothing sensitive is committed to the repo — keys/passwords come from Jenkins
+// credentials at runtime.
+
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'TARGET_ENV',
+            choices: ['staging', 'production'],
+            description: 'Which inventory to deploy against'
+        )
+        booleanParam(
+            name: 'CHECK_MODE',
+            defaultValue: false,
+            description: 'Run ansible-playbook in --check (dry-run) mode'
+        )
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    environment {
+        ANSIBLE_FORCE_COLOR = '1'
+        ANSIBLE_HOST_KEY_CHECKING = 'False'
+        INVENTORY = "ansible/inventory/${params.TARGET_ENV}.ini"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh 'ansible-playbook --syntax-check -i ${INVENTORY} ansible/site.yml'
+            }
+        }
+
+        stage('Deploy ELK') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'elk-ssh-key', keyFileVariable: 'SSH_KEY'),
+                    string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS')
+                ]) {
+                    sh '''
+                        set -eu
+                        VAULT_FILE="$(mktemp)"
+                        trap 'rm -f "$VAULT_FILE"' EXIT
+                        printf '%s' "$VAULT_PASS" > "$VAULT_FILE"
+
+                        EXTRA=""
+                        if [ "${CHECK_MODE}" = "true" ]; then EXTRA="--check --diff"; fi
+
+                        ansible-playbook \
+                            -i "${INVENTORY}" \
+                            --private-key "$SSH_KEY" \
+                            --vault-password-file "$VAULT_FILE" \
+                            $EXTRA \
+                            ansible/site.yml
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "ELK deploy to ${params.TARGET_ENV} completed."
+        }
+        failure {
+            echo "ELK deploy to ${params.TARGET_ENV} FAILED — check console output."
+        }
+    }
+}

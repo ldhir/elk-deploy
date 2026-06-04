@@ -1,0 +1,27 @@
+---
+# Top-level playbook: provisions the full ELK stack.
+# Run a single component with --tags elasticsearch|logstash|kibana.
+
+- name: Provision Elasticsearch nodes
+  hosts: elasticsearch
+  become: true
+  roles:
+    - common
+    - role: elasticsearch
+      tags: [elasticsearch]
+
+- name: Provision Logstash nodes
+  hosts: logstash
+  become: true
+  roles:
+    - common
+    - role: logstash
+      tags: [logstash]
+
+- name: Provision Kibana nodes
+  hosts: kibana
+  become: true
+  roles:
+    - common
+    - role: kibana
+      tags: [kibana]

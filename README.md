@@ -5,17 +5,52 @@ ELK (Elasticsearch, Logstash, Kibana) deployment pipeline driven by **Jenkins** 
 ## Layout
 
 ```
-ansible/        # Ansible playbooks and roles for provisioning the ELK stack
-  roles/        # one role per component (elasticsearch, logstash, kibana, beats)
-jenkins/        # Jenkinsfile and CI/CD pipeline definitions
+jenkins/
+  Jenkinsfile              # declarative CI/CD pipeline (lint + deploy)
+ansible/
+  ansible.cfg
+  site.yml                 # top-level playbook (all three components)
+  inventory/
+    staging.ini
+    production.ini
+  group_vars/
+    all.yml                # shared, non-secret vars (versions, ports)
+  roles/
+    common/                # Elastic APT repo + prereqs
+    elasticsearch/
+    logstash/
+    kibana/
 ```
 
-## Status
+## Deploy locally
 
-Scaffold. Pipeline files (Jenkinsfile, playbooks, inventory) to be added.
+```bash
+cd ansible
+ansible-playbook -i inventory/staging.ini site.yml
+# single component:
+ansible-playbook -i inventory/staging.ini site.yml --tags kibana
+# dry run:
+ansible-playbook -i inventory/staging.ini site.yml --check --diff
+```
+
+Fill in real hosts in `inventory/*.ini` first (placeholders are commented out).
+
+## Jenkins
+
+The pipeline expects two credentials on the controller:
+
+| Credential ID       | Type              | Purpose                          |
+|---------------------|-------------------|----------------------------------|
+| `elk-ssh-key`       | SSH private key   | Reaching target hosts            |
+| `ansible-vault-pass`| Secret text       | Ansible Vault password           |
+
+`TARGET_ENV` (staging/production) and `CHECK_MODE` are build parameters.
 
 ## Secrets
 
 Keys, certs, vault passwords, and `.env` files are git-ignored — see `.gitignore`.
-Never commit `*.key` / `*.pem` or Ansible Vault passwords. Use Ansible Vault or
-Jenkins credentials for anything sensitive.
+Never commit `*.key` / `*.pem` or vault passwords. Put secrets in an Ansible Vault
+file (e.g. `ansible/group_vars/all/vault.yml`) or a Jenkins credential.
+
+> Security note: this scaffold disables X-Pack security for simplicity
+> (`xpack.security.enabled: false`). Enable security + TLS before any real use.

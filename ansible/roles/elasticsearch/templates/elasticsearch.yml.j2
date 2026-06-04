@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+cluster.name: {{ elasticsearch_cluster_name }}
+node.name: {{ inventory_hostname }}
+network.host: 0.0.0.0
+http.port: {{ elasticsearch_http_port }}
+discovery.seed_hosts: {{ groups['elasticsearch'] | to_json }}
+{% if groups['elasticsearch'] | length == 1 %}
+discovery.type: single-node
+{% else %}
+cluster.initial_master_nodes: {{ groups['elasticsearch'] | to_json }}
+{% endif %}
+
+# NOTE: security is disabled in this scaffold for simplicity. Enable
+# xpack.security and TLS before any real deployment.
+xpack.security.enabled: false

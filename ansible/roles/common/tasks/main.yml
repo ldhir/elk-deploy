@@ -1,0 +1,23 @@
+---
+# Shared setup for every ELK host: the Elastic APT repository and Java prereqs.
+
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - gnupg
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Add Elastic APT signing key
+  ansible.builtin.apt_key:
+    url: "{{ elastic_apt_key_url }}"
+    state: present
+
+- name: Add Elastic APT repository
+  ansible.builtin.apt_repository:
+    repo: "{{ elastic_apt_repo }}"
+    state: present
+    filename: elastic-8.x
+    update_cache: true

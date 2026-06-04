@@ -1,0 +1,21 @@
+---
+- name: Install Logstash
+  ansible.builtin.apt:
+    name: "logstash=1:{{ elk_version }}-1"
+    state: present
+    update_cache: true
+
+- name: Deploy Logstash beats pipeline
+  ansible.builtin.template:
+    src: beats.conf.j2
+    dest: /etc/logstash/conf.d/beats.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Logstash
+
+- name: Enable and start Logstash
+  ansible.builtin.systemd:
+    name: logstash
+    enabled: true
+    state: started

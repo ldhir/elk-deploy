@@ -1,0 +1,21 @@
+---
+- name: Install Kibana
+  ansible.builtin.apt:
+    name: "kibana={{ elk_version }}"
+    state: present
+    update_cache: true
+
+- name: Configure Kibana
+  ansible.builtin.template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+    owner: root
+    group: kibana
+    mode: "0660"
+  notify: Restart Kibana
+
+- name: Enable and start Kibana
+  ansible.builtin.systemd:
+    name: kibana
+    enabled: true
+    state: started

@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+# Receives events from Beats and forwards them to Elasticsearch.
+
+input {
+  beats {
+    port => {{ logstash_beats_port }}
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => {{ groups['elasticsearch'] | map('regex_replace', '^(.*)$', 'http://\\1:' ~ elasticsearch_http_port) | list | to_json }}
+    index => "logstash-%{+YYYY.MM.dd}"
+  }
+}

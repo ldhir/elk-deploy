@@ -1,0 +1,21 @@
+---
+# Shared variables across the ELK stack.
+# Keep secrets OUT of this file — use Ansible Vault (group_vars/all/vault.yml).
+
+elk_version: "8.13.4"
+elastic_apt_key_url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+elastic_apt_repo: "deb https://artifacts.elastic.co/packages/8.x/apt stable main"
+
+# Elasticsearch
+elasticsearch_cluster_name: "elk-cluster"
+elasticsearch_heap_size: "1g"
+elasticsearch_http_port: 9200
+
+# Logstash
+logstash_beats_port: 5044
+
+# Kibana
+kibana_port: 5601
+kibana_server_host: "0.0.0.0"
+# Point Kibana at the first ES host in the inventory.
+elasticsearch_hosts: "http://{{ groups['elasticsearch'][0] | default('localhost') }}:{{ elasticsearch_http_port }}"
