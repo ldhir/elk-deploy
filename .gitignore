@@ -1,0 +1,44 @@
+# ── Secrets & keys (NEVER commit) ─────────────────────────────
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+id_rsa*
+id_ed25519*
+*.ppk
+*_rsa
+*.keystore
+*.jks
+
+# Credentials / vault
+*.vault
+vault-pass*
+vault_pass*
+.vault_pass*
+secrets.yml
+secrets.yaml
+*secret*.yml
+*secret*.yaml
+.env
+.env.*
+credentials
+*.credentials
+
+# Ansible
+*.retry
+.ansible/
+inventory/hosts.local
+
+# Jenkins
+jenkins/secrets/
+jenkins/*.war
+
+# OS / editor
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
