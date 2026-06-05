@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and fill in.  (terraform.tfvars is git-ignored.)
+#   cp terraform.tfvars.example terraform.tfvars
+
+project_id = "your-gcp-project-id"   # from: gcloud projects list
+my_ip_cidr = "1.2.3.4/32"            # your IP from: curl ifconfig.me   (add /32)
+
+# Optional overrides:
+# region       = "us-west1"
+# zone         = "us-west1-a"
+# machine_type = "e2-standard-2"
+# disk_size_gb = 30

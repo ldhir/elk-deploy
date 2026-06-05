@@ -1,0 +1,10 @@
+# Terraform — never commit these
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars          # real values (often contain project IDs, IPs)
+!*.tfvars.example # ...but keep the template
+.terraform.lock.hcl
+override.tf
+override.tf.json
