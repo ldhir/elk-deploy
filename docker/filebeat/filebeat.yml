@@ -12,6 +12,18 @@ filebeat.inputs:
       - /var/log/syslog
       - /var/log/auth.log
 
+  # Jenkins BUILD console logs — written to per-build files in JENKINS_HOME,
+  # not container stdout. We mount the jenkins_home volume to read them.
+  # Tagged log_type=jenkins_build so you can filter them in Kibana.
+  - type: filestream
+    id: jenkins-build-logs
+    enabled: true
+    paths:
+      - /jenkins_home/jobs/*/builds/*/log
+    fields:
+      log_type: jenkins_build
+    fields_under_root: true
+
 # Watch Docker and ship logs from containers whose image name contains
 # "jenkins". Scoping by image avoids shipping ELK's own container logs
 # (which would create noisy feedback loops).

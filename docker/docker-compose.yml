@@ -83,6 +83,7 @@ services:
       - /var/log:/var/log:ro                                      # VM's own logs
       - /var/lib/docker/containers:/var/lib/docker/containers:ro  # container stdout logs
       - /var/run/docker.sock:/var/run/docker.sock:ro              # to discover containers
+      - jenkins_home:/jenkins_home:ro                             # Jenkins build console logs
     depends_on:
       - logstash
     networks: [elk]
