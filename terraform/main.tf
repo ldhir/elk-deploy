@@ -85,7 +85,7 @@ resource "google_compute_firewall" "elk_ports" {
   source_ranges = [var.my_ip_cidr]
   allow {
     protocol = "tcp"
-    ports    = ["5601", "9200"]
+    ports    = ["5601", "9200", "8080"] # Kibana, Elasticsearch, Jenkins UI
   }
   depends_on = [google_project_service.compute]
 }

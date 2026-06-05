@@ -80,13 +80,30 @@ services:
     command: ["--strict.perms=false"]
     volumes:
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      - /var/log:/var/log:ro            # the VM's own logs (read-only)
+      - /var/log:/var/log:ro                                      # VM's own logs
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # container stdout logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro              # to discover containers
     depends_on:
       - logstash
     networks: [elk]
 
+  # A real app that produces real logs. Jenkins LTS — web UI on 8080 (opened
+  # to your IP via Terraform). Filebeat autodiscovers it by image name and
+  # ships its logs into the stack.
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    networks: [elk]
+
 volumes:
   esdata:
+    driver: local
+  jenkins_home:
     driver: local
 
 networks:

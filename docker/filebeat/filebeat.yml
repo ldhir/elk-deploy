@@ -1,6 +1,8 @@
-# Filebeat: tail log files and ship them to Logstash.
-# Add/remove sources by editing the paths list below, then:
-#   docker compose restart filebeat
+# Filebeat: tail logs and ship them to Logstash.
+# Two sources:
+#   1. the VM's own system logs (filestream input)
+#   2. the Jenkins container's logs (Docker autodiscover, scoped by image)
+# Add a new container source by adding another autodiscover condition.
 
 filebeat.inputs:
   - type: filestream
@@ -9,12 +11,27 @@ filebeat.inputs:
     paths:
       - /var/log/syslog
       - /var/log/auth.log
-      # add more here, e.g. an app's log file or Jenkins:
-      # - /var/log/jenkins/jenkins.log
 
-# Send to Logstash (service name "logstash" on the compose network).
+# Watch Docker and ship logs from containers whose image name contains
+# "jenkins". Scoping by image avoids shipping ELK's own container logs
+# (which would create noisy feedback loops).
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      templates:
+        - condition:
+            contains:
+              docker.container.image: jenkins
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+
+# Tag each event with container name/image/id so you can filter in Kibana.
+processors:
+  - add_docker_metadata: ~
+
 output.logstash:
   hosts: ["logstash:5044"]
 
-# Quieter startup; no direct ES connection (Logstash handles indexing).
 logging.level: info
