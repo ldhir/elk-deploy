@@ -5,29 +5,34 @@
 #   docker compose logs -f     # follow logs
 #   docker compose down        # stop (add -v to also wipe ES data)
 #
-# Versions/ports come from .env (copy .env.example -> .env first).
-# Security (xpack) is disabled here for a simple first boot — see README
-# before exposing this to anything real.
+# Versions/ports/password come from .env (copy .env.example -> .env first).
+#
+# Security (authentication) is ENABLED. Services authenticate as the `elastic`
+# superuser via ELASTIC_PASSWORD. NOTE: HTTP is still plain http (no TLS) and
+# services share the superuser — the production-correct setup adds TLS certs
+# and dedicated users (kibana_system, a logstash writer). See README.
 
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION}
     container_name: elasticsearch
-    restart: unless-stopped          # survive VM reboots / docker restarts
+    restart: unless-stopped
     environment:
       - node.name=es01
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=true              # ← authentication ON
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}     # sets the 'elastic' superuser pw on first boot
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms${ES_HEAP} -Xmx${ES_HEAP}"
     ulimits:
-      memlock: { soft: -1, hard: -1 }   # allow heap to lock into RAM
+      memlock: { soft: -1, hard: -1 }
     volumes:
       - esdata:/usr/share/elasticsearch/data
     ports:
       - "${ES_PORT}:9200"
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      # now needs credentials, or ES returns 401
+      test: ["CMD-SHELL", "curl -s -u elastic:$${ELASTIC_PASSWORD} http://localhost:9200 >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -41,8 +46,9 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
     environment:
       - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}   # used by the pipeline's ES output
     ports:
-      - "${BEATS_PORT}:5044"     # Beats input (Filebeat ships here)
+      - "${BEATS_PORT}:5044"
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -54,6 +60,11 @@ services:
     restart: unless-stopped
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      # Kibana MUST use the built-in kibana_system service account, NOT the
+      # elastic superuser (8.x refuses the latter). Its password is set in ES
+      # via the _security API — see README. Humans still log in as 'elastic'.
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
     ports:
       - "${KIBANA_PORT}:5601"
     depends_on:
@@ -61,16 +72,12 @@ services:
         condition: service_healthy
     networks: [elk]
 
-  # Ships log files INTO the stack. Runs here on the VM, reading the VM's own
-  # /var/log. To add a source, edit filebeat/filebeat.yml `paths:`. To ship
-  # logs from another box (e.g. Jenkins), run Filebeat THERE instead, pointed
-  # at this VM's logstash:5044.
   filebeat:
     image: docker.elastic.co/beats/filebeat:${ELK_VERSION}
     container_name: filebeat
     restart: unless-stopped
     user: root
-    command: ["--strict.perms=false"]   # tolerate bind-mounted config perms
+    command: ["--strict.perms=false"]
     volumes:
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/log:/var/log:ro            # the VM's own logs (read-only)
