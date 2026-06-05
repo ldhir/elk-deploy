@@ -65,6 +65,7 @@ resource "google_compute_firewall" "ssh" {
     protocol = "tcp"
     ports    = ["22"]
   }
+  depends_on = [google_project_service.compute]
 }
 
 resource "google_compute_firewall" "elk_ports" {
@@ -76,4 +77,5 @@ resource "google_compute_firewall" "elk_ports" {
     protocol = "tcp"
     ports    = ["5601", "9200"]
   }
+  depends_on = [google_project_service.compute]
 }
