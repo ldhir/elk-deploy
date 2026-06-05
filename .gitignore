@@ -24,6 +24,8 @@ secrets.yaml
 *secret*.yaml
 .env
 .env.*
+!.env.example
+!*.env.example
 credentials
 *.credentials
 
