@@ -1,0 +1,20 @@
+# Filebeat: tail log files and ship them to Logstash.
+# Add/remove sources by editing the paths list below, then:
+#   docker compose restart filebeat
+
+filebeat.inputs:
+  - type: filestream
+    id: vm-system-logs
+    enabled: true
+    paths:
+      - /var/log/syslog
+      - /var/log/auth.log
+      # add more here, e.g. an app's log file or Jenkins:
+      # - /var/log/jenkins/jenkins.log
+
+# Send to Logstash (service name "logstash" on the compose network).
+output.logstash:
+  hosts: ["logstash:5044"]
+
+# Quieter startup; no direct ES connection (Logstash handles indexing).
+logging.level: info

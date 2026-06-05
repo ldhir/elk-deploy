@@ -13,6 +13,7 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION}
     container_name: elasticsearch
+    restart: unless-stopped          # survive VM reboots / docker restarts
     environment:
       - node.name=es01
       - discovery.type=single-node
@@ -35,6 +36,7 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:${ELK_VERSION}
     container_name: logstash
+    restart: unless-stopped
     volumes:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
     environment:
@@ -49,6 +51,7 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:${ELK_VERSION}
     container_name: kibana
+    restart: unless-stopped
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     ports:
@@ -56,6 +59,23 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+    networks: [elk]
+
+  # Ships log files INTO the stack. Runs here on the VM, reading the VM's own
+  # /var/log. To add a source, edit filebeat/filebeat.yml `paths:`. To ship
+  # logs from another box (e.g. Jenkins), run Filebeat THERE instead, pointed
+  # at this VM's logstash:5044.
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELK_VERSION}
+    container_name: filebeat
+    restart: unless-stopped
+    user: root
+    command: ["--strict.perms=false"]   # tolerate bind-mounted config perms
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/log:/var/log:ro            # the VM's own logs (read-only)
+    depends_on:
+      - logstash
     networks: [elk]
 
 volumes:

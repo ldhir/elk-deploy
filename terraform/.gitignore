@@ -1,10 +1,18 @@
-# Terraform — never commit these
+# Terraform — never commit these.
+# NOTE: git does NOT support trailing inline comments on patterns,
+# so every comment must be on its own line.
+
 .terraform/
+.terraform.lock.hcl
+crash.log
+
+# State can contain secrets — never commit
 *.tfstate
 *.tfstate.*
-crash.log
-*.tfvars          # real values (often contain project IDs, IPs)
-!*.tfvars.example # ...but keep the template
-.terraform.lock.hcl
+
+# Real variable values (project IDs, IPs) — keep only the example
+*.tfvars
+!*.tfvars.example
+
 override.tf
 override.tf.json

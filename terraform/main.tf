@@ -25,6 +25,13 @@ resource "google_project_service" "compute" {
   disable_on_destroy = false
 }
 
+# A reserved static external IP — stays the same across VM stop/start.
+resource "google_compute_address" "elk" {
+  name       = "elk-static-ip"
+  region     = var.region
+  depends_on = [google_project_service.compute]
+}
+
 # ── The VM itself ──────────────────────────────────────────────────────────
 resource "google_compute_instance" "elk" {
   name         = "elk-vm"
@@ -39,10 +46,13 @@ resource "google_compute_instance" "elk" {
     }
   }
 
-  # Default network + an external IP so you can reach Kibana from your laptop.
+  # Default network + a STATIC external IP (reserved below) so the address
+  # survives stop/start — important since we stop the VM to save credits.
   network_interface {
     network = "default"
-    access_config {} # empty block = give it an ephemeral public IP
+    access_config {
+      nat_ip = google_compute_address.elk.address
+    }
   }
 
   # Runs once on first boot: installs Docker and sets the kernel tweak
